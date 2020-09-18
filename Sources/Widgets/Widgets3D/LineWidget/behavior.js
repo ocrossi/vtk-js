@@ -23,7 +23,7 @@ export default function widgetBehavior(publicAPI, model) {
     model.representations[0].setDisplayCallback(callback);
 
   // --------------------------------------------------------------------------
-  // Interactor event
+  // Interactor events
   // --------------------------------------------------------------------------
 
   function ignoreKey(e) {

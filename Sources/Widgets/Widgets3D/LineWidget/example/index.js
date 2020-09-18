@@ -39,9 +39,7 @@ widgetManager.setRenderer(renderer);
 
 const widget = vtkLineWidget.newInstance();
 widget.placeWidget(cube.getOutputData().getBounds());
-
 const sceneLine = widgetManager.addWidget(widget);
-
 renderer.resetCamera();
 widgetManager.enablePicking();
 
