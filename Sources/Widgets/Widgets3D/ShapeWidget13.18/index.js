@@ -5,12 +5,10 @@ import {
 
 export const DEFAULT_VALUES = {
   manipulator: null,
-  visibleOnFocus: true,
-/* added to match the ofsep methods, to remove when debugging Intensity */
-	xAxis: [0, 0, 0],
+  xAxis: [0, 0, 0],
   yAxis: [0, 0, 0],
   zAxis: [0, 0, 0],
-/************************************************************************/
+  visibleOnFocus: true,
   modifierBehavior: {
     None: {
       [BehaviorCategory.PLACEMENT]:
