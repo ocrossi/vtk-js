@@ -6,12 +6,12 @@ import vtkCircleContextRepresentation from 'vtk.js/Sources/Widgets/Representatio
 import widgetBehavior from 'vtk.js/Sources/Widgets/Widgets3D/EllipseWidget/behavior';
 import stateGenerator from 'vtk.js/Sources/Widgets/Widgets3D/EllipseWidget/state';
 
-import SHAPE_DEFAULT_VALUES from 'vtk.js/Sources/Widgets/Widgets3D/ShapeWidget';
+import SHAPE_DEFAULT_VALUES from 'vtk.js/Sources/Widgets/Widgets3D/ShapeWidget13.18';
 
 import {
   BehaviorCategory,
   ShapeBehavior,
-} from 'vtk.js/Sources/Widgets/Widgets3D/ShapeWidget/Constants';
+} from 'vtk.js/Sources/Widgets/Widgets3D/ShapeWidget13.18/Constants';
 
 import { ViewTypes } from 'vtk.js/Sources/Widgets/Core/WidgetManager/Constants';
 

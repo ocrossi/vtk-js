@@ -1,4 +1,4 @@
-import shapeBehavior from 'vtk.js/Sources/Widgets/Widgets3D/ShapeWidget/behavior';
+import shapeBehavior from 'vtk.js/Sources/Widgets/Widgets3D/ShapeWidget13.18/behavior';
 import { vec3 } from 'gl-matrix';
 
 export default function widgetBehavior(publicAPI, model) {
