@@ -99,6 +99,34 @@ export default function widgetBehavior(publicAPI, model) {
     );
   }
 
+  function hideGhostSpheres() {
+    if (model.handle1Shape === HandleRepresentationType.GHOST_SPHERE) {
+      model.representations[0].getActors()[1].getProperty().setOpacity(0.01);
+    }
+
+    if (model.handle2Shape === HandleRepresentationType.GHOST_SPHERE) {
+      model.representations[1].getActors()[1].getProperty().setOpacity(0.01);
+    }
+  }
+
+  function revealGhostSpheres() {
+    if (
+      model.handle1Shape === HandleRepresentationType.GHOST_SPHERE &&
+      model.activeState &&
+      model.widgetState.getHandle1().getActive()
+    ) {
+      model.representations[0].getActors()[1].getProperty().setOpacity(1);
+    }
+
+    if (
+      model.handle2Shape === HandleRepresentationType.GHOST_SPHERE &&
+      model.activeState &&
+      model.widgetState.getHandle2().getActive()
+    ) {
+      model.representations[1].getActors()[1].getProperty().setOpacity(1);
+    }
+  }
+
   // set in public to update handle  Direction when handle change in UI
   publicAPI.setHandleDirection = () => {
     if (isHandleOrientable(model.handle1Shape)) {
@@ -114,6 +142,7 @@ export default function widgetBehavior(publicAPI, model) {
   // --------------------------------------------------------------------------
 
   publicAPI.handleLeftButtonPress = (e) => {
+    hideGhostSpheres();
     if (
       !model.activeState ||
       !model.activeState.getActive() ||
@@ -159,6 +188,7 @@ export default function widgetBehavior(publicAPI, model) {
       calcTextPosWithLineAngle();
       moveHandle.setVisible(true);
     } else {
+      revealGhostSpheres();
       isDragging = true;
       model.openGLRenderWindow.setCursor('grabbing');
       model.interactor.requestAnimation(publicAPI);
@@ -172,6 +202,10 @@ export default function widgetBehavior(publicAPI, model) {
   // --------------------------------------------------------------------------
 
   publicAPI.handleMouseMove = (callData) => {
+    if (!model.activeState || !model.activeState.getActive()) {
+      hideGhostSpheres();
+    }
+
     if (model.hasFocus && model.widgetState.getNbHandles() === MAX_POINTS) {
       publicAPI.loseFocus();
       return macro.VOID;
@@ -183,6 +217,7 @@ export default function widgetBehavior(publicAPI, model) {
       model.activeState.getActive() &&
       !ignoreKey(callData)
     ) {
+      revealGhostSpheres();
       const worldCoords = model.manipulator.handleEvent(
         callData,
         model.openGLRenderWindow
@@ -225,6 +260,7 @@ export default function widgetBehavior(publicAPI, model) {
       model.widgetState.deactivate();
       model.interactor.cancelAnimation(publicAPI);
       publicAPI.invokeEndInteractionEvent();
+      hideGhostSpheres();
     } else if (model.activeState !== model.widgetState.getMoveHandle()) {
       model.widgetState.deactivate();
     }
