@@ -35,6 +35,9 @@ function vtkLineWidget(publicAPI, model) {
     HandleRepresentationType.SPHERE
   ] = vtkSphereHandleRepresentation;
   shapeToRepresentation[
+    HandleRepresentationType.GHOST_SPHERE
+  ] = vtkSphereHandleRepresentation;
+  shapeToRepresentation[
     HandleRepresentationType.CUBE
   ] = vtkCubeHandleRepresentation;
   shapeToRepresentation[
@@ -189,7 +192,7 @@ function vtkLineWidget(publicAPI, model) {
 // ----------------------------------------------------------------------------
 
 const DEFAULT_VALUES = {
-  handle1Shape: HandleRepresentationType.ARROWHEAD6,
+  handle1Shape: HandleRepresentationType.GHOST_SPHERE,
   handle2Shape: HandleRepresentationType.ARROWHEAD6,
   /* Position of the text on the line where 0 is handle1 and 1 is handle2 */
   positionOnLine: 0.5,
