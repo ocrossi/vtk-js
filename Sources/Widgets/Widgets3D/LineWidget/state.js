@@ -47,5 +47,6 @@ export default function generateState() {
     })
     .addField({ name: 'positionOnLine', initialValues: 0 })
     .addField({ name: 'nbHandles', initialValues: 0 })
+    .addField({ name: 'isDragging', initialValues: false })
     .build();
 }

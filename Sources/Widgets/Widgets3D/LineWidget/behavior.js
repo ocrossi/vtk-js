@@ -13,7 +13,6 @@ const { Direction, HandleBehavior, HandleRepresentationType } = Constants;
 
 export default function widgetBehavior(publicAPI, model) {
   model.classHierarchy.push('vtkLineWidgetProp');
-  let isDragging = null;
 
   // --------------------------------------------------------------------------
   // Display 2D
@@ -189,7 +188,7 @@ export default function widgetBehavior(publicAPI, model) {
       moveHandle.setVisible(true);
     } else {
       revealGhostSpheres();
-      isDragging = true;
+      model.widgetState.setIsDragging(true);
       model.openGLRenderWindow.setCursor('grabbing');
       model.interactor.requestAnimation(publicAPI);
     }
@@ -227,11 +226,11 @@ export default function widgetBehavior(publicAPI, model) {
       }
       if (
         model.activeState === model.widgetState.getMoveHandle() ||
-        isDragging
+        model.widgetState.getIsDragging()
       ) {
         model.activeState.setOrigin(worldCoords);
         publicAPI.invokeInteractionEvent();
-        if (isDragging === true) {
+        if (model.widgetState.getIsDragging()) {
           if (isOrientable()) {
             updateTextPosition(model, model.widgetState.getPositionOnLine());
             calcTextPosWithLineAngle();
@@ -254,7 +253,7 @@ export default function widgetBehavior(publicAPI, model) {
   // --------------------------------------------------------------------------
 
   publicAPI.handleLeftButtonRelease = () => {
-    if (isDragging && model.pickable) {
+    if (model.widgetState.getIsDragging() && model.pickable) {
       calcTextPosWithLineAngle();
       model.openGLRenderWindow.setCursor('pointer');
       model.widgetState.deactivate();
@@ -272,7 +271,7 @@ export default function widgetBehavior(publicAPI, model) {
       model.widgetManager.enablePicking();
       model.interactor.render();
     }
-    isDragging = false;
+    model.widgetState.setIsDragging(false);
   };
 
   // --------------------------------------------------------------------------
