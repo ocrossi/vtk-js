@@ -39,7 +39,7 @@ widgetManager.setRenderer(renderer);
 const widget = vtkLineWidget.newInstance();
 widget.placeWidget(cube.getOutputData().getBounds());
 
-const sceneLine = widgetManager.addWidget(widget);
+let lineWidget = widgetManager.addWidget(widget);
 
 renderer.resetCamera();
 widgetManager.enablePicking();
@@ -53,42 +53,77 @@ fullScreenRenderer.addController(controlPanel);
 document.querySelector('#focus').addEventListener('click', () => {
   widgetManager.grabFocus(widget);
 });
+let i = 1;
+document.querySelector('#test').addEventListener('click', () => {
+  const fP = {
+    fontColor: '#1312ac',
+    fontSize: 25 + i * 10,
+    fontFamily: 'Helvetica',
+  };
+  i++;
+  const widgetCp = vtkLineWidget.newInstance();
+  widgetCp.placeWidget(cube.getOutputData().getBounds());
+  const cp1 = widget.getWidgetState().getHandle1().getOrigin();
+  const cp2 = widget.getWidgetState().getHandle2().getOrigin();
+  widgetCp.getWidgetState().getHandle1().setOrigin(cp1);
+  widgetCp.getWidgetState().getHandle1().setVisible(true);
+  widgetCp.getWidgetState().getHandle2().setOrigin(cp2);
+  widgetCp.getWidgetState().getHandle2().setVisible(true);
+  widgetCp.getWidgetState().getText().setText('pas false');
+  widgetCp.getWidgetState().getText().setVisible(true);
 
+  const hey = widgetManager.addWidget(widgetCp);
+  console.log('ALLo');
+  renderWindow.render();
+});
+
+document.querySelector('#focus').addEventListener('click', () => {
+  widgetManager.grabFocus(widget);
+});
 // Text Modifiers ------------------------------------------
 
-document.querySelector('#txtIpt').addEventListener('keyup', () => {
+function updateText() {
   const input = document.getElementById('txtIpt').value;
-  widget.updateTextValue(input);
+  widget.setText(input);
   renderWindow.render();
-});
+}
+document.querySelector('#txtIpt').addEventListener('keyup', updateText);
+updateText();
 
-document.querySelector('#linePos').addEventListener('input', (ev) => {
+function updateLinePos() {
   const input = document.getElementById('linePos').value;
-  widget.updateTextProps(input, 'positionOnLine');
-  widgetManager.addWidget(widget);
+  widget.setPositionOnLine(input / 100);
   renderWindow.render();
-});
+}
+document.querySelector('#linePos').addEventListener('input', updateLinePos);
+updateLinePos();
 
 // Handle Sources ------------------------------------------
-
-document.querySelector('#idh1').addEventListener('input', (ev) => {
-  const e = document.getElementById('idh1');
-  const input = e.options[e.selectedIndex].value;
-  widget.updateHandleFromUI(input, 1);
+function updateHandleShape(handleId) {
+  const e = document.getElementById(`idh${handleId}`);
+  const shape = e.options[e.selectedIndex].value;
+  widget.setHandleShape(handleId, shape);
   widgetManager.removeWidget(widget);
-  widgetManager.addWidget(widget);
+  lineWidget = widgetManager.addWidget(widget);
   widgetManager.getWidgets()[0].setHandleDirection();
   renderWindow.render();
-});
+}
 
-document.querySelector('#idh2').addEventListener('input', (ev) => {
-  const e = document.getElementById('idh2');
-  const input = e.options[e.selectedIndex].value;
-  widget.updateHandleFromUI(input, 2);
-  widgetManager.removeWidget(widget);
-  widgetManager.addWidget(widget);
-  widgetManager.getWidgets()[0].setHandleDirection();
-  renderWindow.render();
+document
+  .querySelector('#idh1')
+  .addEventListener('input', updateHandleShape.bind(null, 1));
+
+document
+  .querySelector('#idh2')
+  .addEventListener('input', updateHandleShape.bind(null, 2));
+
+updateHandleShape(1);
+updateHandleShape(2);
+
+lineWidget.onInteractionEvent(() => {
+  document.getElementById('distance').innerHTML = widget
+    .getDistance()
+    .toFixed(2);
 });
 
 // -----------------------------------------------------------
@@ -100,4 +135,4 @@ global.renderer = renderer;
 global.fullScreenRenderer = fullScreenRenderer;
 global.renderWindow = renderWindow;
 global.widgetManager = widgetManager;
-global.line = sceneLine;
+global.line = lineWidget;

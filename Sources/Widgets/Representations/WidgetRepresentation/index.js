@@ -133,6 +133,7 @@ function vtkWidgetRepresentation(publicAPI, model) {
     ctxVisible = true,
     handleVisible = true
   ) => {
+    console.log('wesh update actor visi inside widget Rep');
     let otherFlag = true;
     switch (model.behavior) {
       case Behavior.HANDLE:

@@ -7,6 +7,8 @@ import {
   updateTextPosition,
 } from 'vtk.js/Sources/Widgets/Widgets3D/LineWidget/helper';
 
+import { RenderingTypes } from 'vtk.js/Sources/Widgets/Core/WidgetManager/Constants';
+
 const MAX_POINTS = 2;
 
 const { Direction, HandleBehavior, HandleRepresentationType } = Constants;
@@ -49,9 +51,12 @@ export default function widgetBehavior(publicAPI, model) {
 
   function calcTextPosWithLineAngle() {
     const dySign = detectOffsetDirectionForTextPosition();
-    model.representations[2].setDy(
+    /*  model.representations[2].setDy(
       dySign * Math.abs(model.representations[2].getDy())
-    );
+    ); */
+    const textPropsCopy = model.representations[2].getTextProps();
+    textPropsCopy.dy = dySign * Math.abs(textPropsCopy.dy);
+    model.representations[2].setTextProps(textPropsCopy);
   }
 
   function updateHandleDirection(behavior, callData) {
@@ -88,14 +93,12 @@ export default function widgetBehavior(publicAPI, model) {
   }
 
   function isHandleOrientable(handleType) {
-    if (
+    return (
       handleType === HandleRepresentationType.CONE ||
       handleType === HandleRepresentationType.ARROWHEAD3 ||
       handleType === HandleRepresentationType.ARROWHEAD4 ||
       handleType === HandleRepresentationType.ARROWHEAD6
-    )
-      return 1;
-    return 0;
+    );
   }
 
   function isOrientable() {
@@ -105,10 +108,26 @@ export default function widgetBehavior(publicAPI, model) {
     );
   }
 
+  function testActorVisi() {
+    const renderingType = RenderingTypes.FRONT_BUFFER;
+    console.log('test des valeurs needed');
+    console.log(`visi normale ${model.visibility}`);
+    console.log(`visi context ${model.contextVisibility}`);
+    console.log(`visi handle ${model.handleVisibility}`);
+    model.representations[0].updateActorVisibility(
+      renderingType,
+      model.visibility,
+      model.contextVisibility,
+      false
+    );
+    // publicAPI.updateActorVisibility();
+  }
+
   /* set a nearly transparent opacity to allow mouseMove events to react to
    * handle position. An opacity value set to 0 prevents such behavior
    */
   publicAPI.hideGhostSpheres = () => {
+    testActorVisi();
     if (model.handle1Shape === HandleRepresentationType.GHOST_SPHERE) {
       model.representations[0].getActors()[1].getProperty().setOpacity(0.01);
     }
@@ -216,7 +235,8 @@ export default function widgetBehavior(publicAPI, model) {
       return macro.VOID;
     }
     if (!model.activeState || !model.activeState.getActive()) {
-      publicAPI.hideGhostSpheres();
+      // publicAPI.hideGhostSpheres();
+      testActorVisi();
     }
     if (
       model.pickable &&
@@ -268,7 +288,8 @@ export default function widgetBehavior(publicAPI, model) {
       model.widgetState.deactivate();
       model.interactor.cancelAnimation(publicAPI);
       publicAPI.invokeEndInteractionEvent();
-      publicAPI.hideGhostSpheres();
+      // publicAPI.hideGhostSpheres();
+      testActorVisi();
     } else if (model.activeState !== model.widgetState.getMoveHandle()) {
       model.widgetState.deactivate();
     }
