@@ -7,11 +7,8 @@ import {
   updateTextPosition,
 } from 'vtk.js/Sources/Widgets/Widgets3D/LineWidget/helper';
 
-import { RenderingTypes } from 'vtk.js/Sources/Widgets/Core/WidgetManager/Constants';
-
-const MAX_POINTS = 2;
-
 const { Direction, HandleBehavior, HandleRepresentationType } = Constants;
+const MAX_POINTS = 2;
 
 export default function widgetBehavior(publicAPI, model) {
   model.classHierarchy.push('vtkLineWidgetProp');
@@ -26,6 +23,11 @@ export default function widgetBehavior(publicAPI, model) {
   // --------------------------------------------------------------------------
   // Interactor event
   // --------------------------------------------------------------------------
+
+  model.handleVisibility = !(
+    !model.handle1Visibility || !model.handle2Visibility
+  );
+  //  console.log('test');
 
   function ignoreKey(e) {
     return e.altKey || e.controlKey || e.shiftKey;
@@ -51,10 +53,7 @@ export default function widgetBehavior(publicAPI, model) {
 
   function calcTextPosWithLineAngle() {
     const dySign = detectOffsetDirectionForTextPosition();
-    /*  model.representations[2].setDy(
-      dySign * Math.abs(model.representations[2].getDy())
-    ); */
-    const textPropsCopy = model.representations[2].getTextProps();
+    const textPropsCopy = { ...model.representations[2].getTextProps() };
     textPropsCopy.dy = dySign * Math.abs(textPropsCopy.dy);
     model.representations[2].setTextProps(textPropsCopy);
   }
@@ -108,26 +107,29 @@ export default function widgetBehavior(publicAPI, model) {
     );
   }
 
-  function testActorVisi() {
-    const renderingType = RenderingTypes.FRONT_BUFFER;
-    console.log('test des valeurs needed');
-    console.log(`visi normale ${model.visibility}`);
-    console.log(`visi context ${model.contextVisibility}`);
-    console.log(`visi handle ${model.handleVisibility}`);
-    model.representations[0].updateActorVisibility(
-      renderingType,
-      model.visibility,
-      model.contextVisibility,
-      false
-    );
-    // publicAPI.updateActorVisibility();
+  function toggleHandleVisibility() {
+    if (
+      model.activeState &&
+      !model.activeState.getActive() &&
+      (model.handle1Visibility === false || model.handle2Visibility === false)
+    ) {
+      model.handleVisibility = false;
+    } else if (
+      model.activeState &&
+      model.activeState.getActive() &&
+      ((model.handle1Visibility === false &&
+        model.widgetState.getHandle1().getActive()) ||
+        (model.handle2Visibility === false &&
+          model.widgetState.getHandle2().getActive()))
+    ) {
+      model.handleVisibility = true;
+    }
   }
 
   /* set a nearly transparent opacity to allow mouseMove events to react to
    * handle position. An opacity value set to 0 prevents such behavior
    */
   publicAPI.hideGhostSpheres = () => {
-    testActorVisi();
     if (model.handle1Shape === HandleRepresentationType.GHOST_SPHERE) {
       model.representations[0].getActors()[1].getProperty().setOpacity(0.01);
     }
@@ -178,7 +180,6 @@ export default function widgetBehavior(publicAPI, model) {
     ) {
       return macro.VOID;
     }
-    publicAPI.hideGhostSpheres();
     const moveHandle = model.widgetState.getMoveHandle();
     moveHandle.setVisible(false);
     if (
@@ -216,7 +217,7 @@ export default function widgetBehavior(publicAPI, model) {
       calcTextPosWithLineAngle();
       moveHandle.setVisible(true);
     } else {
-      publicAPI.revealGhostSpheres();
+      // publicAPI.revealGhostSpheres();
       model.widgetState.setIsDragging(true);
       model.openGLRenderWindow.setCursor('grabbing');
       model.interactor.requestAnimation(publicAPI);
@@ -234,10 +235,7 @@ export default function widgetBehavior(publicAPI, model) {
       publicAPI.loseFocus();
       return macro.VOID;
     }
-    if (!model.activeState || !model.activeState.getActive()) {
-      // publicAPI.hideGhostSpheres();
-      testActorVisi();
-    }
+    toggleHandleVisibility();
     if (
       model.pickable &&
       model.manipulator &&
@@ -245,7 +243,8 @@ export default function widgetBehavior(publicAPI, model) {
       model.activeState.getActive() &&
       !ignoreKey(callData)
     ) {
-      publicAPI.revealGhostSpheres();
+      // console.log('HAHAHHAHAHAHHAH');
+      // publicAPI.revealGhostSpheres();
       const worldCoords = model.manipulator.handleEvent(
         callData,
         model.openGLRenderWindow
@@ -260,9 +259,9 @@ export default function widgetBehavior(publicAPI, model) {
         model.activeState.setOrigin(worldCoords);
         publicAPI.invokeInteractionEvent();
         if (model.widgetState.getIsDragging()) {
+          calcTextPosWithLineAngle();
+          updateTextPosition(model, model.widgetState.getPositionOnLine());
           if (isOrientable()) {
-            updateTextPosition(model, model.widgetState.getPositionOnLine());
-            calcTextPosWithLineAngle();
             publicAPI.setHandleDirection();
           }
         } else if (
@@ -288,8 +287,6 @@ export default function widgetBehavior(publicAPI, model) {
       model.widgetState.deactivate();
       model.interactor.cancelAnimation(publicAPI);
       publicAPI.invokeEndInteractionEvent();
-      // publicAPI.hideGhostSpheres();
-      testActorVisi();
     } else if (model.activeState !== model.widgetState.getMoveHandle()) {
       model.widgetState.deactivate();
     }

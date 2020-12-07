@@ -53,18 +53,14 @@ fullScreenRenderer.addController(controlPanel);
 document.querySelector('#focus').addEventListener('click', () => {
   widgetManager.grabFocus(widget);
 });
-let i = 1;
+
 document.querySelector('#test').addEventListener('click', () => {
-  const fP = {
-    fontColor: '#1312ac',
-    fontSize: 25 + i * 10,
-    fontFamily: 'Helvetica',
-  };
-  i++;
   const widgetCp = vtkLineWidget.newInstance();
   widgetCp.placeWidget(cube.getOutputData().getBounds());
   const cp1 = widget.getWidgetState().getHandle1().getOrigin();
   const cp2 = widget.getWidgetState().getHandle2().getOrigin();
+  cp1[0] += 0.5;
+  cp2[0] += 0.5;
   widgetCp.getWidgetState().getHandle1().setOrigin(cp1);
   widgetCp.getWidgetState().getHandle1().setVisible(true);
   widgetCp.getWidgetState().getHandle2().setOrigin(cp2);
@@ -72,8 +68,7 @@ document.querySelector('#test').addEventListener('click', () => {
   widgetCp.getWidgetState().getText().setText('pas false');
   widgetCp.getWidgetState().getText().setVisible(true);
 
-  const hey = widgetManager.addWidget(widgetCp);
-  console.log('ALLo');
+  widgetManager.addWidget(widgetCp);
   renderWindow.render();
 });
 

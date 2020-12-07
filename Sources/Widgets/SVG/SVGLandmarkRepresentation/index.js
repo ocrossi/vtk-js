@@ -49,16 +49,16 @@ function vtkSVGLandmarkRepresentation(publicAPI, model) {
             root.appendChild(circle);
           }
           const splitText = texts[i].split('\n');
-          const newlineOffset =
-            model.fontProperties != null && model.fontProperties.fontSize
-              ? model.fontProperties.fontSize
-              : 15;
+          // const newlineOffset =
+          //  model.fontProperties != null && model.fontProperties.fontSize
+          //    ? model.fontProperties.fontSize
+          //    : 15;
           splitText.forEach((subText, j) => {
             const text = createSvgElement('text');
             Object.keys(model.textProps || {}).forEach((prop) => {
-              if (model.fromLineWidget === true && prop === 'dy') {
-                return text.setAttribute(prop, model.dy + newlineOffset * j);
-              }
+              //  if (model.fromLineWidget === true && prop === 'dy') {
+              //   return text.setAttribute(prop, model.dy + newlineOffset * j);
+              //  }
               return text.setAttribute(prop, model.textProps[prop]);
             });
             text.setAttribute('x', x);
