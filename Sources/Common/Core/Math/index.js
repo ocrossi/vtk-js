@@ -1,6 +1,9 @@
 import seedrandom from 'seedrandom';
 import macro from 'vtk.js/Sources/macro';
 
+// eslint-disable-next-line import/no-cycle
+import vtkMatrixBuilder from 'vtk.js/Sources/Common/Core/MatrixBuilder';
+
 const { vtkErrorMacro, vtkWarningMacro } = macro;
 
 // ----------------------------------------------------------------------------
@@ -206,9 +209,12 @@ export function outer(x, y, out_3x3) {
 }
 
 export function cross(x, y, out) {
-  out[0] = x[1] * y[2] - x[2] * y[1];
-  out[1] = x[2] * y[0] - x[0] * y[2];
-  out[2] = x[0] * y[1] - x[1] * y[0];
+  const Zx = x[1] * y[2] - x[2] * y[1];
+  const Zy = x[2] * y[0] - x[0] * y[2];
+  const Zz = x[0] * y[1] - x[1] * y[0];
+  out[0] = Zx;
+  out[1] = Zy;
+  out[2] = Zz;
   return out;
 }
 
@@ -689,16 +695,24 @@ export function quaternionToMatrix3x3(quat_4, mat_3x3) {
   mat_3x3[2][2] = zz * f + s;
 }
 
-export function areMatricesEqual(matA, matB) {
-  if (!matA.length === matB.length) {
+/**
+ * Returns true if elements of both arrays are equals.
+ * @param {Array} a an array of numbers (vector, point, matrix...)
+ * @param {Array} b an array of numbers (vector, point, matrix...)
+ * @param {Number} eps tolerance
+ */
+export function areEquals(a, b, eps = 1e-6) {
+  if (!a.length === b.length) {
     return false;
   }
 
   function isEqual(element, index) {
-    return element === matB[index];
+    return Math.abs(element - b[index]) < eps;
   }
-  return matA.every(isEqual);
+  return a.every(isEqual);
 }
+
+export const areMatricesEqual = areEquals;
 
 export function jacobiN(a, n, w, v) {
   let i;
@@ -2124,32 +2138,12 @@ export function float2CssRGBA(rgbArray) {
 }
 
 export function rotateVector(vectorToBeRotated, axis, angle) {
-  const v = [...vectorToBeRotated];
-  const l = [...axis];
-
-  normalize(v);
-  normalize(l);
-
-  const u = Math.sin(angle);
-  const w = 1.0 - Math.cos(angle);
-
-  const rotatedVector = [0, 0, 0];
-
-  rotatedVector[0] =
-    v[0] * (1 - w * (l[2] * l[2] + l[1] * l[1])) +
-    v[1] * (-u * l[2] + w * l[0] * l[1]) +
-    v[2] * (u * l[1] + w * l[0] * l[1]);
-
-  rotatedVector[1] =
-    v[0] * (u * l[2] + w * l[0] * l[1]) +
-    v[1] * (1 - w * (l[0] * l[0] + l[2] * l[2])) +
-    v[2] * (-u * l[0] + w * l[1] * l[2]);
-
-  rotatedVector[2] =
-    v[0] * (-u * l[1] + w * l[0] * l[2]) +
-    v[1] * (u * l[0] + w * l[1] * l[2]) +
-    v[2] * (1 - w * (l[1] * l[1] + l[0] * l[0]));
-
+  const rotatedVector = [...vectorToBeRotated];
+  vtkMatrixBuilder
+    .buildFromRadian()
+    .identity()
+    .rotate(angle, axis)
+    .apply(rotatedVector);
   return rotatedVector;
 }
 
@@ -2214,6 +2208,7 @@ export default {
   identity3x3,
   determinant3x3,
   quaternionToMatrix3x3,
+  areEquals,
   areMatricesEqual,
   matrix3x3ToQuaternion,
   multiplyQuaternion,

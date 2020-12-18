@@ -338,6 +338,16 @@ function vtkCamera(publicAPI, model) {
     publicAPI.modified();
   };
 
+  publicAPI.translate = (x, y, z) => {
+    const offset = [x, y, z];
+
+    vtkMath.add(model.position, offset, model.position);
+    vtkMath.add(model.focalPoint, offset, model.focalPoint);
+
+    publicAPI.computeDistance();
+    publicAPI.modified();
+  };
+
   publicAPI.applyTransform = (transformMat4) => {
     const vuOld = [...model.viewUp, 1.0];
     const posNew = [];
@@ -696,7 +706,7 @@ function vtkCamera(publicAPI, model) {
       const angle = vtkMath.radiansFromDegrees(degrees);
       const q = quat.create();
       quat.setAxisAngle(q, [x, y, z], angle);
-      quat.toMat4(q, quatMat);
+      mat4.fromQuat(quatMat, q);
     }
 
     const dop = vec3.fromValues(0.0, 0.0, -1.0);

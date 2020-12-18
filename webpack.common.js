@@ -1,6 +1,6 @@
 // node modules
 const path = require('path');
-const merge = require('webpack-merge');
+const { merge } = require('webpack-merge');
 
 // webpack plugins
 const WebpackNotifierPlugin = require('webpack-notifier');
@@ -37,6 +37,7 @@ function configureVtkRules() {
     },
     {
       test: /\.js$/,
+      include: path.resolve(__dirname, 'Sources'),
       use: [
         {
           loader: 'babel-loader',
@@ -76,9 +77,7 @@ function configureVtkRules() {
     },
     {
       test: /\.worker\.js$/,
-      use: [
-        { loader: 'worker-loader', options: { inline: true, fallback: false } },
-      ],
+      use: [{ loader: 'worker-loader', options: { inline: 'no-fallback' } }],
     },
   ];
 }
@@ -96,6 +95,7 @@ const baseConfig = {
     alias: {
       'vtk.js': __dirname,
     },
+    fallback: { stream: require.resolve('stream-browserify') },
   },
   module: {
     rules: configureVtkRules(),
@@ -107,9 +107,6 @@ const baseConfig = {
       alwaysNotify: true,
     }),
   ],
-  node: {
-    fs: 'empty',
-  },
 };
 
 // vtk-lite.js
@@ -150,6 +147,7 @@ const liteConfig = merge(
           'Sources/Rendering/Core/ColorTransferFunction/LiteColorMaps.json'
         ),
       },
+      fallback: { stream: require.resolve('stream-browserify') },
     },
   },
   baseConfig,

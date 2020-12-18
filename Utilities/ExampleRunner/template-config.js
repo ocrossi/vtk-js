@@ -1,5 +1,6 @@
-var path = require('path');
-var vtkBasePath = path.resolve('.');
+const path = require('path');
+
+const vtkBasePath = path.resolve('.');
 
 const settings = require('../../webpack.settings.js');
 
@@ -45,9 +46,10 @@ module.exports = {
     alias: {
       'vtk.js': '${vtkBasePath.replace(/\\/g, '\\\\')}',
     },
-  },
-  node: {
-    fs: 'empty',
+    fallback: {
+      fs: false,
+      stream: require.resolve('stream-browserify')
+    },
   },
 
   devServer: {

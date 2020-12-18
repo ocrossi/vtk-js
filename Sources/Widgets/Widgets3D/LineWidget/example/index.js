@@ -18,12 +18,14 @@ const fullScreenRenderer = vtkFullScreenRenderWindow.newInstance({
 });
 const renderer = fullScreenRenderer.getRenderer();
 
-const cone = vtkCubeSource.newInstance();
+const renderWindow = fullScreenRenderer.getRenderWindow();
+
+const cube = vtkCubeSource.newInstance();
 const mapper = vtkMapper.newInstance();
 const actor = vtkActor.newInstance();
 
 actor.setMapper(mapper);
-mapper.setInputConnection(cone.getOutputPort());
+mapper.setInputConnection(cube.getOutputPort());
 actor.getProperty().setOpacity(0.5);
 
 renderer.addActor(actor);
@@ -36,9 +38,9 @@ const widgetManager = vtkWidgetManager.newInstance();
 widgetManager.setRenderer(renderer);
 
 const widget = vtkLineWidget.newInstance();
-widget.placeWidget(cone.getOutputData().getBounds());
+widget.placeWidget(cube.getOutputData().getBounds());
 
-widgetManager.addWidget(widget);
+const sceneLine = widgetManager.addWidget(widget);
 
 renderer.resetCamera();
 widgetManager.enablePicking();
@@ -49,20 +51,54 @@ widgetManager.enablePicking();
 
 fullScreenRenderer.addController(controlPanel);
 
-widget.getWidgetState().onModified(() => {
-  console.log(widget.getDistance());
-  document.querySelector('#distance').innerText = widget.getDistance();
+document.querySelector('#focus').addEventListener('click', () => {
+  widgetManager.grabFocus(widget);
 });
 
-document.querySelector('button').addEventListener('click', () => {
-  widgetManager.grabFocus(widget);
+// Text Modifiers ------------------------------------------
+
+document.querySelector('#txtIpt').addEventListener('keyup', () => {
+  const input = document.getElementById('txtIpt').value;
+  widget.updateTextValue(input);
+  renderWindow.render();
+});
+
+document.querySelector('#linePos').addEventListener('input', (ev) => {
+  const input = document.getElementById('linePos').value;
+  widget.updateTextProps(input, 'positionOnLine');
+  widgetManager.addWidget(widget);
+  renderWindow.render();
+});
+
+// Handle Sources ------------------------------------------
+
+document.querySelector('#idh1').addEventListener('input', (ev) => {
+  const e = document.getElementById('idh1');
+  const input = e.options[e.selectedIndex].value;
+  widget.updateHandleFromUI(input, 1);
+  widgetManager.removeWidget(widget);
+  widgetManager.addWidget(widget);
+  widgetManager.getWidgets()[0].setHandleDirection();
+  renderWindow.render();
+});
+
+document.querySelector('#idh2').addEventListener('input', (ev) => {
+  const e = document.getElementById('idh2');
+  const input = e.options[e.selectedIndex].value;
+  widget.updateHandleFromUI(input, 2);
+  widgetManager.removeWidget(widget);
+  widgetManager.addWidget(widget);
+  widgetManager.getWidgets()[0].setHandleDirection();
+  renderWindow.render();
 });
 
 // -----------------------------------------------------------
 // globals
 // -----------------------------------------------------------
 
-// !!! A test de rerender une foiss que j ai update les default values !!!
-// setTimeout(()=> {console.log(widget); widget.setShapeHandle1("cube");}, 5000);
-
 global.widget = widget;
+global.renderer = renderer;
+global.fullScreenRenderer = fullScreenRenderer;
+global.renderWindow = renderWindow;
+global.widgetManager = widgetManager;
+global.line = sceneLine;

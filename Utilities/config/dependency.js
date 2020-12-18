@@ -27,7 +27,7 @@ module.exports = {
           use: [
             {
               loader: 'worker-loader',
-              options: { inline: true, fallback: false },
+              options: { inline: 'no-fallback' },
             },
           ],
         },
@@ -44,7 +44,9 @@ module.exports = {
             {
               loader: 'postcss-loader',
               options: {
-                plugins: () => [autoprefixer('last 2 version', 'ie >= 10')],
+                postcssOptions: {
+                  plugins: [autoprefixer('last 2 version', 'ie >= 10')],
+                },
               },
             },
           ],
@@ -65,7 +67,9 @@ module.exports = {
             {
               loader: 'postcss-loader',
               options: {
-                plugins: () => [autoprefixer('last 2 version', 'ie >= 10')],
+                postcssOptions: {
+                  plugins: [autoprefixer('last 2 version', 'ie >= 10')],
+                },
               },
             },
           ],

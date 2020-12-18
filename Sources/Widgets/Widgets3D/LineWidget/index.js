@@ -1,19 +1,28 @@
+import Constants from 'vtk.js/Sources/Widgets/Widgets3D/LineWidget/Constants';
+import { distance2BetweenPoints } from 'vtk.js/Sources/Common/Core/Math';
 import macro from 'vtk.js/Sources/macro';
+import stateGenerator from 'vtk.js/Sources/Widgets/Widgets3D/LineWidget/state';
 import vtkAbstractWidgetFactory from 'vtk.js/Sources/Widgets/Core/AbstractWidgetFactory';
+import vtkArrowHandleRepresentation from 'vtk.js/Sources/Widgets/Representations/ArrowHandleRepresentation';
 import vtkPlanePointManipulator from 'vtk.js/Sources/Widgets/Manipulators/PlaneManipulator';
-// import vtkLineHandleRepresentation from 'vtk.js/Sources/Widgets/Representations/LineHandleRepresentation';
 import vtkSphereHandleRepresentation from 'vtk.js/Sources/Widgets/Representations/SphereHandleRepresentation';
+import vtkCircleHandleRepresentation from 'vtk.js/Sources/Widgets/Representations/CircleHandleRepresentation';
 import vtkCubeHandleRepresentation from 'vtk.js/Sources/Widgets/Representations/CubeHandleRepresentation';
 import vtkConeHandleRepresentation from 'vtk.js/Sources/Widgets/Representations/ConeHandleRepresentation';
-import { distance2BetweenPoints } from 'vtk.js/Sources/Common/Core/Math';
-import widgetBehavior from 'vtk.js/Sources/Widgets/Widgets3D/LineWidget/behavior';
-import stateGenerator from 'vtk.js/Sources/Widgets/Widgets3D/LineWidget/state';
-import { ViewTypes } from 'vtk.js/Sources/Widgets/Core/WidgetManager/Constants';
-import vtkSVGCustomLandmarkRepresentation from 'vtk.js/Sources/Widgets/SVG/SVGCustomLandmarkRepresentation';
+import vtkSVGLandmarkRepresentation from 'vtk.js/Sources/Widgets/SVG/SVGLandmarkRepresentation';
 import vtkPolyLineRepresentation from 'vtk.js/Sources/Widgets/Representations/PolyLineRepresentation';
+import widgetBehavior from 'vtk.js/Sources/Widgets/Widgets3D/LineWidget/behavior';
+import { ViewTypes } from 'vtk.js/Sources/Widgets/Core/WidgetManager/Constants';
+
+import { updateTextPosition } from 'vtk.js/Sources/Widgets/Widgets3D/LineWidget/helper';
+
 // ----------------------------------------------------------------------------
 // Factory
 // ----------------------------------------------------------------------------
+
+const { HandleRepresentationType, HandleRepresentation } = Constants;
+
+const shapeToRepresentation = {};
 
 function vtkLineWidget(publicAPI, model) {
   model.classHierarchy.push('vtkLineWidget');
@@ -21,38 +30,45 @@ function vtkLineWidget(publicAPI, model) {
   // --- Widget Requirement ---------------------------------------------------
 
   // custom handles set in default values
+  // 3D source handles
+  shapeToRepresentation[
+    HandleRepresentationType.SPHERE
+  ] = vtkSphereHandleRepresentation;
+  shapeToRepresentation[
+    HandleRepresentationType.CUBE
+  ] = vtkCubeHandleRepresentation;
+  shapeToRepresentation[
+    HandleRepresentationType.CONE
+  ] = vtkConeHandleRepresentation;
+  shapeToRepresentation[
+    HandleRepresentationType.NONE
+  ] = vtkSphereHandleRepresentation;
+  // 2D source handles
+  shapeToRepresentation[
+    HandleRepresentationType.ARROWHEAD3
+  ] = vtkArrowHandleRepresentation;
+  shapeToRepresentation[
+    HandleRepresentationType.ARROWHEAD4
+  ] = vtkArrowHandleRepresentation;
+  shapeToRepresentation[
+    HandleRepresentationType.ARROWHEAD6
+  ] = vtkArrowHandleRepresentation;
+  shapeToRepresentation[
+    HandleRepresentationType.STAR
+  ] = vtkArrowHandleRepresentation;
+  shapeToRepresentation[
+    HandleRepresentationType.CIRCLE
+  ] = vtkCircleHandleRepresentation;
 
-  const handleRepresentation = [0, 0, 0];
-  function detectHandleShape() {
-    switch (model.shapeHandle1) {
-      case 'sphere':
-        handleRepresentation[0] = vtkSphereHandleRepresentation;
-        break;
-      case 'cube':
-        handleRepresentation[0] = vtkCubeHandleRepresentation;
-        break;
-      case 'cone':
-        handleRepresentation[0] = vtkConeHandleRepresentation;
-        break;
-      default:
-        handleRepresentation[0] = vtkSphereHandleRepresentation;
-        break;
+  function initializeHandleRepresentations() {
+    HandleRepresentation[0] = shapeToRepresentation[model.handle1Shape];
+    if (!HandleRepresentation[0]) {
+      HandleRepresentation[0] = vtkSphereHandleRepresentation;
     }
-    switch (model.shapeHandle2) {
-      case 'sphere':
-        handleRepresentation[1] = vtkSphereHandleRepresentation;
-        break;
-      case 'cube':
-        handleRepresentation[1] = vtkCubeHandleRepresentation;
-        break;
-      case 'cone':
-        handleRepresentation[1] = vtkConeHandleRepresentation;
-        break;
-      default:
-        handleRepresentation[1] = vtkSphereHandleRepresentation;
-        break;
+    HandleRepresentation[1] = shapeToRepresentation[model.handle2Shape];
+    if (!HandleRepresentation[1]) {
+      HandleRepresentation[1] = vtkSphereHandleRepresentation;
     }
-    handleRepresentation[2] = vtkSVGCustomLandmarkRepresentation;
   }
 
   model.methodsToLink = [
@@ -64,7 +80,9 @@ function vtkLineWidget(publicAPI, model) {
   ];
   model.behavior = widgetBehavior;
   model.widgetState = stateGenerator();
-  detectHandleShape();
+  model.widgetState.setPositionOnLine(model.positionOnLine);
+  model.widgetState.setNbHandles(0);
+  initializeHandleRepresentations();
 
   publicAPI.getRepresentationsForViewType = (viewType) => {
     switch (viewType) {
@@ -75,21 +93,33 @@ function vtkLineWidget(publicAPI, model) {
       default:
         return [
           {
-            builder: handleRepresentation[0],
+            builder: HandleRepresentation[0],
             labels: ['handle1'],
-            initialValues: { scaleInPixels: true },
+            initialValues: {
+              /* to scale handle size when zooming/dezooming, optionnal */
+              scaleInPixels: true,
+              /* to detect arrow type in ArrowHandleRepresentation, mandatory */
+              handleType: model.handle1Shape,
+            },
           },
           {
-            builder: handleRepresentation[1],
+            builder: HandleRepresentation[1],
             labels: ['handle2'],
-            initialValues: { scaleInPixels: true },
+            initialValues: {
+              /* to scale handle size when zooming/dezooming, optionnal */
+              scaleInPixels: true,
+              /* to detect arrow type in ArrowHandleRepresentation, mandatory */
+              handleType: model.handle2Shape,
+            },
           },
-          { builder: handleRepresentation[2], labels: ['text'] },
-          //    {
-          //     builder: vtkLineHandleRepresentation,
-          //    labels: ['handle1', 'handle2', 'moveHandle'],
-          //  initialValues: { scaleInPixels: true },
-          // },
+          {
+            builder: vtkSVGLandmarkRepresentation,
+            initialValues: {
+              showCircle: false,
+              isVisible: false,
+            },
+            labels: ['SVGtext'],
+          },
           {
             builder: vtkPolyLineRepresentation,
             labels: ['handle1', 'handle2', 'moveHandle'],
@@ -102,14 +132,41 @@ function vtkLineWidget(publicAPI, model) {
   // --- Public methods -------------------------------------------------------
 
   publicAPI.getDistance = () => {
-    const handles =
-      model.widgetState.getHandle1List() + model.widgetState.getHandle2List();
-    if (handles.length !== 2) {
+    const nbHandles =
+      model.widgetState.getHandle1List().length +
+      model.widgetState.getHandle2List().length;
+    if (nbHandles !== 2) {
       return 0;
     }
     return Math.sqrt(
-      distance2BetweenPoints(handles[0].getOrigin(), handles[1].getOrigin())
+      distance2BetweenPoints(
+        model.widgetState.getHandle1List()[0].getOrigin(),
+        model.widgetState.getHandle2List()[0].getOrigin()
+      )
     );
+  };
+
+  publicAPI.updateTextValue = (text) => {
+    if (typeof model.widgetState.getText() !== 'undefined')
+      model.widgetState.getText().setText(text);
+  };
+
+  publicAPI.updateTextProps = (input, prop) => {
+    if (prop === 'positionOnLine') {
+      publicAPI.setPositionOnLine(input / 100);
+    }
+    updateTextPosition(model, publicAPI.getPositionOnLine());
+    model.widgetState.setPositionOnLine(publicAPI.getPositionOnLine());
+  };
+
+  publicAPI.updateHandleFromUI = (input, handleId) => {
+    if (handleId === 1) {
+      model.handle1Shape = input;
+    } else if (handleId === 2) {
+      model.handle2Shape = input;
+    }
+    initializeHandleRepresentations();
+    publicAPI.getRepresentationsForViewType(0);
   };
 
   // --------------------------------------------------------------------------
@@ -132,13 +189,15 @@ function vtkLineWidget(publicAPI, model) {
 // ----------------------------------------------------------------------------
 
 const DEFAULT_VALUES = {
-  // manipulator: null,
-  shapeHandle1: 'cone',
-  shapeHandle2: 'cone',
-  textInput: 'DEFAULT_VALUES textInput',
-  offset: 0.2,
-  offsetDir: 2,
-  lineDir: 0.1,
+  handle1Shape: HandleRepresentationType.ARROWHEAD6,
+  handle2Shape: HandleRepresentationType.ARROWHEAD6,
+  /* Position of the text on the line where 0 is handle1 and 1 is handle2 */
+  positionOnLine: 0.5,
+  /* You can change the initial value of the text here, the initialValue variable
+   * of the state is meant to create an empty text to insert the desired text
+   * when both handles are set, and avoids having a default text before
+   */
+  text: 'Text orginal',
 };
 
 // ----------------------------------------------------------------------------
@@ -149,9 +208,9 @@ export function extend(publicAPI, model, initialValues = {}) {
   vtkAbstractWidgetFactory.extend(publicAPI, model, initialValues);
   macro.setGet(publicAPI, model, [
     'manipulator',
-    'shapeHandle1',
-    'shapeHandle2',
-    'textInput',
+    'handle1Shape',
+    'handle2Shape',
+    'positionOnLine',
   ]);
   vtkLineWidget(publicAPI, model);
 }

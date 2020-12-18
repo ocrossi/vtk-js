@@ -35,6 +35,7 @@ function vtkSphereHandleRepresentation(publicAPI, model) {
       empty: true,
     }),
   };
+
   model.internalPolyData.getPointData().addArray(model.internalArrays.scale);
   model.internalPolyData.getPointData().addArray(model.internalArrays.color);
 
