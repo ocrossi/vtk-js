@@ -87,6 +87,7 @@ export default function widgetBehavior(publicAPI, model) {
       vtkMath.subtract(handle1Pos, handle2Pos, Direction);
       vtkMath.multiplyScalar(Direction, modifier);
     }
+    // console.log(Direction);
     model.representations[bv].setOrientation(Direction);
     model.representations[bv].setToRedirect(true);
   }
@@ -142,8 +143,8 @@ export default function widgetBehavior(publicAPI, model) {
       isHandleGlyph2D(model.handle1Shape)
     ) {
       model.representations[0].setToReorient(true);
-      model.representations[0].setOrientation(
-        model.camera.getDirectionOfProjection()
+      model.representations[0].setViewMatrix(
+        Array.from(model.camera.getViewMatrix())
       );
     }
     if (
@@ -151,8 +152,8 @@ export default function widgetBehavior(publicAPI, model) {
       isHandleGlyph2D(model.handle2Shape)
     ) {
       model.representations[1].setToReorient(true);
-      model.representations[1].setOrientation(
-        model.camera.getDirectionOfProjection()
+      model.representations[1].setViewMatrix(
+        Array.from(model.camera.getViewMatrix())
       );
     }
   };
