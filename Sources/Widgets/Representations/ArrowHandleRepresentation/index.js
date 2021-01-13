@@ -9,6 +9,11 @@ import vtkHandleRepresentation from 'vtk.js/Sources/Widgets/Representations/Hand
 import vtkMatrixBuilder from 'vtk.js/Sources/Common/Core/MatrixBuilder';
 import vtkPixelSpaceCallbackMapper from 'vtk.js/Sources/Rendering/Core/PixelSpaceCallbackMapper';
 import vtkPolyData from 'vtk.js/Sources/Common/DataModel/PolyData';
+import vtkConeSource from 'vtk.js/Sources/Filters/Sources/ConeSource';
+import vtkSphereSource from 'vtk.js/Sources/Filters/Sources/SphereSource';
+import vtkCircleSource from 'vtk.js/Sources/Filters/Sources/CircleSource';
+import vtkCubeSource from 'vtk.js/Sources/Filters/Sources/CubeSource';
+import vtkViewFinderSource from 'vtk.js/Sources/Filters/Sources/ViewFinderSource';
 
 import Constants from 'vtk.js/Sources/Widgets/Widgets3D/LineWidget/Constants';
 import { ScalarMode } from 'vtk.js/Sources/Rendering/Core/Mapper/Constants';
@@ -56,24 +61,62 @@ function vtkArrowHandleRepresentation(publicAPI, model) {
     .getPointData()
     .addArray(model.internalArrays.direction);
 
-  function detectArrowShape() {
+  function detectArrowShape(shape) {
     const representationToSource = {
       [HandleRepresentationType.STAR]: {
-        initialValues: { shape: 'star' },
+        builder: vtkArrow2DSource,
+        initialValues: { shape: 'star', height: 0.6 },
       },
       [HandleRepresentationType.ARROWHEAD3]: {
+        builder: vtkArrow2DSource,
         initialValues: { shape: 'triangle' },
       },
       [HandleRepresentationType.ARROWHEAD4]: {
+        builder: vtkArrow2DSource,
         initialValues: { shape: 'arrow4points' },
       },
       [HandleRepresentationType.ARROWHEAD6]: {
+        builder: vtkArrow2DSource,
         initialValues: { shape: 'arrow6points' },
       },
+      [HandleRepresentationType.CONE]: {
+        builder: vtkConeSource,
+      },
+      [HandleRepresentationType.SPHERE]: {
+        builder: vtkSphereSource,
+      },
+      [HandleRepresentationType.CUBE]: {
+        builder: vtkCubeSource,
+        initialValues: { xLength: 0.8, yLength: 0.8, zLength: 0.8 },
+      },
+      [HandleRepresentationType.DISK]: {
+        builder: vtkCircleSource,
+        initialValues: {
+          resolution: 30,
+          radius: 0.6,
+          lines: false,
+          face: true,
+        },
+      },
+      [HandleRepresentationType.CIRCLE]: {
+        builder: vtkCircleSource,
+        initialValues: {
+          resolution: 30,
+          radius: 0.6,
+          lines: true,
+          face: false,
+        },
+      },
+      [HandleRepresentationType.VIEWFINDER]: {
+        builder: vtkViewFinderSource,
+        initialValues: { radius: 0.2, spacing: 0.5, width: 2 },
+      },
+      [HandleRepresentationType.NONE]: {
+        builder: vtkSphereSource,
+      },
     };
-    return vtkArrow2DSource.newInstance(
-      representationToSource[model.handleType].initialValues
-    );
+    const rep = representationToSource[shape];
+    return rep.builder.newInstance(rep.initialValues);
   }
 
   // --------------------------------------------------------------------------
@@ -90,7 +133,7 @@ function vtkArrowHandleRepresentation(publicAPI, model) {
   model.pipelines = {
     arrow: {
       source: publicAPI,
-      glyph: detectArrowShape(),
+      glyph: vtkSphereSource.newInstance(),
       mapper: vtkGlyph3DMapper.newInstance({
         orientationArray: 'direction',
         scaleArray: 'scale',
@@ -100,10 +143,14 @@ function vtkArrowHandleRepresentation(publicAPI, model) {
       actor: vtkActor.newInstance(),
     },
   };
+  model.currentShape = 'sphere';
 
+  /*
+   * displayActors and displayMappers are used to render objects in HTML, allowing objects
+   * to be 'rendered' internally in a VTK scene without being visible on the final output
+   */
   model.pipelines.arrow.mapper.setOrientationModeToMatrix();
   model.pipelines.arrow.mapper.setResolveCoincidentTopology(true);
-
   vtkWidgetRepresentation.connectPipeline(model.pipelines.arrow);
 
   publicAPI.addActor(model.pipelines.arrow.actor);
@@ -115,7 +162,9 @@ function vtkArrowHandleRepresentation(publicAPI, model) {
 
   publicAPI.setGlyphResolution = macro.chain(
     publicAPI.setGlyphResolution,
-    (r) => model.glyph.setPhiResolution(r) && model.glyph.setThetaResolution(r)
+    (r) =>
+      model.pipelines.arrow.glyph.setPhiResolution(r) &&
+      model.pipelines.arrow.glyph.setThetaResolution(r)
   );
 
   // --------------------------------------------------------------------------
@@ -144,7 +193,77 @@ function vtkArrowHandleRepresentation(publicAPI, model) {
 
   // --------------------------------------------------------------------------
 
-  publicAPI.requestData = (inData, outData) => {
+  publicAPI.setDrawBorder = (draw) => {
+    model.pipelines.circle.glyph.setLines(draw);
+  };
+
+  // --------------------------------------------------------------------------
+
+  publicAPI.setDrawFace = (draw) => {
+    model.pipelines.circle.glyph.setFace(draw);
+  };
+
+  // --------------------------------------------------------------------------
+
+  const glyphIsNot3D = () =>
+    model.currentShape !== HandleRepresentationType.CONE &&
+    model.currentShape !== HandleRepresentationType.CUBE &&
+    model.currentShape !== HandleRepresentationType.SPHERE;
+
+  /*
+   * rotate the glyph to make sure it is properly oriented on the plane
+   * facing camera position on scene start (before user moves camera)
+   */
+  function handleGlyphDirection(viewMatrixInv) {
+    let displayOrientation = vec3.create();
+    let baseDir = [0, 1, 0];
+
+    if (model.currentShape === HandleRepresentationType.CONE) {
+      displayOrientation = [0, 1, 0];
+    } else if (
+      model.currentShape === HandleRepresentationType.DISK ||
+      model.currentShape === HandleRepresentationType.CIRCLE
+    ) {
+      displayOrientation = [0, 0, 1];
+      baseDir = [1, 0, 0];
+    } else {
+      vec3.transformMat3(displayOrientation, model.orientation, viewMatrixInv);
+      displayOrientation[2] = 0;
+    }
+    const displayMatrix = vtkMatrixBuilder
+      .buildFromDegree()
+      .rotateFromDirections(baseDir, displayOrientation)
+      .getMatrix();
+    return displayMatrix;
+  }
+
+  function handleGlyphRotationToFaceCamera(scale3, displayMatrix, viewMatrix) {
+    const displayRotation = mat3.create();
+    const rotation = mat3.create();
+    if (glyphIsNot3D()) {
+      mat3.fromMat4(displayRotation, displayMatrix);
+      mat3.multiply(rotation, viewMatrix, displayRotation);
+      vec3.transformMat3(scale3, scale3, rotation);
+    }
+    return rotation;
+  }
+
+  function handleGlyphRotation(scale3) {
+    const viewMatrix = mat3.create();
+    mat3.fromMat4(viewMatrix, model.viewMatrix);
+    const viewMatrixInv = mat3.create();
+    mat3.invert(viewMatrixInv, viewMatrix);
+
+    const displayMatrix = handleGlyphDirection(viewMatrixInv);
+    const rotation = handleGlyphRotationToFaceCamera(
+      scale3,
+      displayMatrix,
+      viewMatrix
+    );
+    return rotation;
+  }
+
+  publicAPI.requestDataInternal = (inData, outData) => {
     const { points, scale, color, direction } = model.internalArrays;
     const list = publicAPI.getRepresentationStates(inData[0]);
     const totalCount = list.length;
@@ -156,6 +275,7 @@ function vtkArrowHandleRepresentation(publicAPI, model) {
       color.setData(new Float32Array(totalCount));
       direction.setData(new Float32Array(9 * totalCount));
     }
+
     const typedArray = {
       points: points.getData(),
       scale: scale.getData(),
@@ -176,28 +296,11 @@ function vtkArrowHandleRepresentation(publicAPI, model) {
       let scale3 = state.getScale3 ? state.getScale3() : [1, 1, 1];
       scale3 = scale3.map((x) => (x === 0 ? 2 * model.defaultScale : 2 * x));
 
-      const viewMatrix = mat3.create();
-      mat3.fromMat4(viewMatrix, model.viewMatrix);
-      const viewMatrixInv = mat3.create();
-      mat3.invert(viewMatrixInv, viewMatrix);
-
-      const displayOrientation = vec3.create();
-      vec3.transformMat3(displayOrientation, model.orientation, viewMatrixInv);
-      displayOrientation[2] = 0;
-      const displayMatrix = vtkMatrixBuilder
-        .buildFromDegree()
-        .rotateFromDirections([0, 1, 0], displayOrientation)
-        .getMatrix();
-      const displayRotation = mat3.create();
-      mat3.fromMat4(displayRotation, displayMatrix);
-      const rotation = mat3.create();
-      mat3.multiply(rotation, viewMatrix, displayRotation);
-      vec3.transformMat3(scale3, scale3, rotation);
+      const rotation = handleGlyphRotation(scale3);
 
       typedArray.direction.set(rotation, 9 * i);
       typedArray.scale[i] =
         scaleFactor *
-        (!state.isVisible || state.isVisible() ? 1 : 0) *
         (state.getScale1 ? state.getScale1() : model.defaultScale);
 
       if (publicAPI.getScaleInPixels()) {
@@ -212,27 +315,32 @@ function vtkArrowHandleRepresentation(publicAPI, model) {
     outData[0] = model.internalPolyData;
   };
 
+  publicAPI.requestData = (inData, outData) => {
+    const currentShape = publicAPI
+      .getRepresentationStates(inData[0])[0]
+      .getShape();
+    if (model.currentShape !== currentShape) {
+      model.currentShape = currentShape;
+      model.pipelines.arrow.glyph = detectArrowShape(model.currentShape);
+      model.glyph = model.pipelines.arrow.glyph;
+      vtkWidgetRepresentation.connectPipeline(model.pipelines.arrow);
+    }
+    publicAPI.requestDataInternal(inData, outData);
+  };
+
   publicAPI.updateActorVisibility = (
     renderingType = RenderingTypes.FRONT_BUFFER,
     widgetVisible = true,
     ctxVisible = true,
-    handleVisible = false
+    handleVisible = true
   ) => {
+    const state = publicAPI.getRepresentationStates()[0];
     superClass.updateActorVisibility(
       renderingType,
       widgetVisible,
       ctxVisible,
-      handleVisible
+      handleVisible && state.isVisible()
     );
-    if (model.fromLineWidget) {
-      const visibility = model.handleVisibility;
-      if (visibility === true) {
-        model.displayActor.setVisibility(true);
-        model.actor.setVisibility(true);
-      } else {
-        model.displayActor.setVisibility(false);
-      }
-    }
   };
 }
 
@@ -242,9 +350,7 @@ function vtkArrowHandleRepresentation(publicAPI, model) {
 
 const DEFAULT_VALUES = {
   defaultScale: 1,
-  orientation: [0, 0, 0],
-  viewMatrix: mat4.create(),
-  handleVisibility: true,
+  currentShape: '',
 };
 
 // ----------------------------------------------------------------------------
@@ -252,9 +358,12 @@ const DEFAULT_VALUES = {
 export function extend(publicAPI, model, initialValues = {}) {
   Object.assign(model, DEFAULT_VALUES, initialValues);
 
+  model.viewMatrix = mat4.create();
+  model.orientation = [1, 0, 0];
+
   vtkHandleRepresentation.extend(publicAPI, model, initialValues);
   macro.get(publicAPI, model, ['glyph', 'mapper', 'actor']);
-  macro.setGet(publicAPI, model, ['handleVisibility']);
+  macro.setGetArray(publicAPI, model, ['visibilityFlagArray'], 2);
   macro.setGetArray(publicAPI, model, ['orientation'], 3);
   macro.setGetArray(publicAPI, model, ['viewMatrix'], 16);
   // Object specific methods
