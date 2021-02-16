@@ -61,6 +61,8 @@ builder
       origin: [0, 0, 0],
     },
   })
+  .addField({ name: 'isDragging', initialValue: false })
+  .addField({ name: 'nbHandles', initialValue: 0 })
   .addField({ name: 'handle1FaceCamera', initialValue: true })
   .addField({ name: 'handle2FaceCamera', initialValue: true })
   .build();

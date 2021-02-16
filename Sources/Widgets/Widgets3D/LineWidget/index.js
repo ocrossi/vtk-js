@@ -108,7 +108,8 @@ function vtkLineWidget(publicAPI, model) {
   // --- Public methods -------------------------------------------------------
 
   publicAPI.getDistance = () => {
-    const nbHandles = getNbHandles(model);
+    // const nbHandles = getNbHandles(model);
+    const nbHandles = model.widgetState.getNbHandles();
     if (nbHandles < 1) {
       return 0;
     }
@@ -148,7 +149,7 @@ function vtkLineWidget(publicAPI, model) {
 // ----------------------------------------------------------------------------
 
 const DEFAULT_VALUES = {
-  isDragging: false,
+  // isDragging: false,
 };
 
 // ----------------------------------------------------------------------------
@@ -157,7 +158,7 @@ export function extend(publicAPI, model, initialValues = {}) {
   Object.assign(model, DEFAULT_VALUES, initialValues);
 
   vtkAbstractWidgetFactory.extend(publicAPI, model, initialValues);
-  macro.setGet(publicAPI, model, ['manipulator', 'isDragging']);
+  macro.setGet(publicAPI, model, ['manipulator' /* , 'isDragging' */]);
 
   vtkLineWidget(publicAPI, model);
 }

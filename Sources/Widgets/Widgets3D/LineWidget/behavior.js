@@ -4,7 +4,7 @@ import * as vtkMath from 'vtk.js/Sources/Common/Core/Math/';
 import {
   calculateTextPosition,
   updateTextPosition,
-  getNbHandles,
+  // getNbHandles,
 } from 'vtk.js/Sources/Widgets/Widgets3D/LineWidget/helper';
 
 const { HandleRepresentationType } = Constants;
@@ -20,7 +20,7 @@ export default function widgetBehavior(publicAPI, model) {
   const handle2FaceCamera = publicAPI.getWidgetState().getHandle2FaceCamera();
   const handleToHide = [false, false];
 
-  model.nbHandles = 0;
+  // model.nbHandles = 0;
 
   // --------------------------------------------------------------------------
   // Interactor event
@@ -31,7 +31,8 @@ export default function widgetBehavior(publicAPI, model) {
   }
 
   function updateCursor() {
-    model.isDragging = true;
+    // model.isDragging = true;
+    model.widgetState.setIsDragging(true);
     model.openGLRenderWindow.setCursor('grabbing');
     model.interactor.requestAnimation(publicAPI);
   }
@@ -247,9 +248,9 @@ export default function widgetBehavior(publicAPI, model) {
   // --------------------------------------------------------------------------
 
   publicAPI.placeHandle = (handle) => {
-    const nb = getNbHandles(model);
-    publicAPI.manageHandleVisibility(handle, nb);
-    model.nbHandles = nb;
+    // const nb = getNbHandles(model);
+    publicAPI.manageHandleVisibility(handle, model.widgetState.getNbHandles());
+    // model.nbHandles = nb;
     handle.setOrigin(...model.widgetState.getMoveHandle().getOrigin());
     handle.setColor(model.widgetState.getMoveHandle().getColor());
     handle.setScale1(model.widgetState.getMoveHandle().getScale1());
@@ -272,15 +273,19 @@ export default function widgetBehavior(publicAPI, model) {
     }
     if (
       model.activeState === model.widgetState.getMoveHandle() &&
-      getNbHandles(model) === 1
+      // getNbHandles(model) === 1
+      model.widgetState.getNbHandles() === 0
     ) {
+      model.widgetState.setNbHandles(1);
       publicAPI.placeHandle(handle1);
       model.activeState.setShape(handle2.getShape());
       handle2.setOrigin(...model.widgetState.getMoveHandle().getOrigin());
     } else if (
       model.activeState === model.widgetState.getMoveHandle() &&
-      getNbHandles(model) === 2
+      // getNbHandles(model) === 2
+      model.widgetState.getNbHandles() === 1
     ) {
+      model.widgetState.setNbHandles(2);
       publicAPI.placeHandle(handle2);
       publicAPI.updateHandleDirections();
       publicAPI.placeText();
@@ -297,7 +302,8 @@ export default function widgetBehavior(publicAPI, model) {
   // --------------------------------------------------------------------------
 
   publicAPI.handleMouseMove = (callData) => {
-    if (model.hasFocus && model.nbHandles === MAX_POINTS) {
+    // if (model.hasFocus && model.nbHandles === MAX_POINTS) {
+    if (model.hasFocus && model.widgetState.getNbHandles() === MAX_POINTS) {
       publicAPI.loseFocus();
       return macro.VOID;
     }
@@ -315,18 +321,21 @@ export default function widgetBehavior(publicAPI, model) {
       publicAPI.activateHandleVisibility();
       if (
         model.activeState === model.widgetState.getMoveHandle() ||
-        model.isDragging
+        model.widgetState.getIsDragging() === true
+        // model.isDragging
       ) {
         model.activeState.setOrigin(worldCoords);
         publicAPI.invokeInteractionEvent();
-        if (model.isDragging) {
+        // if (model.isDragging) {
+        if (model.widgetState.getIsDragging() === true) {
           updateTextPosition(model);
           publicAPI.placeText();
           if (isOrientable()) {
             publicAPI.updateHandleDirections();
           }
         } else if (
-          model.nbHandles === 1 &&
+          // model.nbHandles === 1 &&
+          model.widgetState.getNbHandles() === 1 &&
           isHandleOrientable(handle1.getShape())
         ) {
           const direction = orientFirstHandleBeforeSecondHandlePlacement(
@@ -334,7 +343,8 @@ export default function widgetBehavior(publicAPI, model) {
           );
           orientHandle(1, direction);
         }
-        if (model.nbHandles === 1 && getNbHandles(model) === 2) {
+        // if (model.nbHandles === 1 && getNbHandles(model) === 2) {
+        if (model.widgetState.getNbHandles() === 2) {
           const direction = orientHandlesWithCompleteWidget(3);
           orientHandle(3, direction);
         }
@@ -352,7 +362,8 @@ export default function widgetBehavior(publicAPI, model) {
   // --------------------------------------------------------------------------
 
   publicAPI.handleLeftButtonRelease = () => {
-    if (model.isDragging && model.pickable) {
+    // if (model.isDragging && model.pickable) {
+    if (model.widgetState.getIsDragging() === true && model.pickable) {
       publicAPI.placeText();
       model.openGLRenderWindow.setCursor('pointer');
       model.widgetState.deactivate();
@@ -370,12 +381,14 @@ export default function widgetBehavior(publicAPI, model) {
       model.interactor.render();
     }
     if (
-      model.isDragging === false &&
+      // model.isDragging === false &&
+      model.widgetState.getIsDragging() === false &&
       (!model.activeState || !model.activeState.getActive())
     ) {
       publicAPI.rotateHandlesToFaceCamera();
     }
-    model.isDragging = false;
+    // model.isDragging = false;
+    model.widgetState.setIsDragging(false);
   };
 
   // --------------------------------------------------------------------------
@@ -383,7 +396,8 @@ export default function widgetBehavior(publicAPI, model) {
   // --------------------------------------------------------------------------
 
   publicAPI.grabFocus = () => {
-    if (!model.hasFocus && model.nbHandles < MAX_POINTS) {
+    // if (!model.hasFocus && model.nbHandles < MAX_POINTS) {
+    if (!model.hasFocus && model.widgetState.getNbHandles() < MAX_POINTS) {
       model.activeState = model.widgetState.getMoveHandle();
       model.activeState.setShape(handle1.getShape());
       model.activeState.setScale1(50);
